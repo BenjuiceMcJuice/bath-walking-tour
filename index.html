@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bath Walking Tour — Team Away Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --stone: #c8b89a;
+    --stone-light: #f0e9df;
+    --stone-dark: #8a6f52;
+    --ink: #1a1208;
+    --cream: #faf6f0;
+    --gold: #c49a2a;
+    --spa: #4a7c7e;
+    --spa-light: #e8f4f4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); }
+
+  header {
+    background: var(--ink); color: var(--cream);
+    padding: 2.5rem 1.5rem 2rem; text-align: center; position: relative; overflow: hidden;
+  }
+  header::before {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg,transparent,transparent 40px,rgba(200,184,154,0.04) 40px,rgba(200,184,154,0.04) 80px);
+  }
+  .header-label { font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--stone); margin-bottom: 0.7rem; position: relative; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: clamp(1.9rem,5vw,3rem); line-height: 1.1; position: relative; margin-bottom: 0.4rem; }
+  header h1 em { font-style: italic; color: var(--stone); }
+  .header-sub { font-size: 0.8rem; color: rgba(250,246,240,0.55); position: relative; margin-bottom: 1.2rem; }
+  .header-meta { display: flex; justify-content: center; gap: 0.7rem; flex-wrap: wrap; position: relative; }
+  .meta-pill { background: rgba(200,184,154,0.15); border: 1px solid rgba(200,184,154,0.3); border-radius: 2rem; padding: 0.35rem 0.9rem; font-size: 0.72rem; color: var(--stone); }
+
+  .flags-bar { background: var(--gold); padding: 0.65rem 1rem; text-align: center; font-size: 0.78rem; font-weight: 500; color: var(--ink); }
+  .flags-bar .flags { font-size: 1.15rem; letter-spacing: 0.1em; display: block; margin-bottom: 0.2rem; }
+
+  .section { padding: 1.5rem; max-width: 860px; margin: 0 auto; }
+  .section-label { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.3em; text-transform: uppercase; color: var(--stone-dark); margin-bottom: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--stone); opacity: 0.3; }
+
+  #map { height: 360px; border-radius: 8px; border: 2px solid var(--stone); box-shadow: 5px 5px 0 var(--stone-dark); }
+  .map-links { display: flex; gap: 0.6rem; margin-top: 0.8rem; flex-wrap: wrap; }
+  .map-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.9rem; border-radius: 4px; font-size: 0.72rem; font-weight: 500; text-decoration: none; transition: opacity 0.2s; }
+  .map-btn:hover { opacity: 0.8; }
+  .map-btn.primary { background: var(--spa); color: white; }
+  .map-btn.secondary { background: var(--stone-light); color: var(--stone-dark); border: 1px solid var(--stone); }
+
+  .stop-card { display: grid; grid-template-columns: 52px 1fr; gap: 0 1.3rem; margin-bottom: 1.3rem; position: relative; }
+  .stop-card::before { content: ''; position: absolute; left: 25px; top: 52px; bottom: -1.3rem; width: 2px; background: linear-gradient(to bottom, var(--stone), transparent); }
+  .stop-card:last-child::before { display: none; }
+  .stop-num { width: 52px; height: 52px; border-radius: 50%; background: var(--ink); color: var(--cream); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; flex-shrink: 0; position: relative; z-index: 1; border: 3px solid var(--stone); }
+  .stop-body { background: white; border-radius: 8px; border: 1px solid rgba(200,184,154,0.5); box-shadow: 2px 3px 10px rgba(26,18,8,0.06); overflow: hidden; }
+  .stop-header { padding: 0.9rem 1.1rem 0.5rem; border-bottom: 1px solid var(--stone-light); display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+  .stop-name { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; }
+  .stop-era { background: var(--spa-light); color: var(--spa); border-radius: 2rem; padding: 0.18rem 0.6rem; font-size: 0.62rem; font-weight: 500; white-space: nowrap; align-self: flex-start; }
+  .stop-meta { display: flex; gap: 0.8rem; padding: 0.45rem 1.1rem; background: var(--stone-light); font-size: 0.7rem; color: var(--stone-dark); flex-wrap: wrap; }
+  .stop-content { padding: 0.85rem 1.1rem; }
+  .stop-desc { font-size: 0.83rem; line-height: 1.65; color: #3a2e1e; margin-bottom: 0.8rem; }
+
+  .stop-tabs { display: flex; gap: 0.35rem; margin-bottom: 0.65rem; flex-wrap: wrap; }
+  .tab-btn { background: var(--stone-light); border: 1px solid var(--stone); border-radius: 4px; padding: 0.28rem 0.65rem; font-size: 0.68rem; font-weight: 500; cursor: pointer; color: var(--stone-dark); transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+  .tab-btn.active, .tab-btn:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .tab-panel ul { list-style: none; font-size: 0.8rem; line-height: 1.6; color: #3a2e1e; }
+  .tab-panel ul li { padding: 0.28rem 0; border-bottom: 1px dashed rgba(200,184,154,0.4); display: flex; gap: 0.45rem; align-items: flex-start; }
+  .tab-panel ul li:last-child { border-bottom: none; }
+  .tab-panel ul li::before { content: '→'; color: var(--gold); flex-shrink: 0; margin-top: 0.05rem; }
+
+  .nat-grid { display: flex; flex-direction: column; gap: 0; }
+  .nat-row { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px dashed rgba(200,184,154,0.4); font-size: 0.79rem; line-height: 1.55; }
+  .nat-row:last-child { border-bottom: none; }
+  .nat-flag { font-size: 1rem; flex-shrink: 0; width: 1.4rem; text-align: center; margin-top: 0.1rem; }
+
+  .quiz-item { margin-bottom: 0.5rem; }
+  .quiz-q { font-size: 0.8rem; font-weight: 500; color: var(--ink); padding: 0.45rem 0.7rem; background: #fff9ee; border-left: 3px solid var(--gold); border-radius: 0 4px 4px 0; cursor: pointer; user-select: none; }
+  .quiz-q:hover { background: #fff3d6; }
+  .quiz-hint { font-size: 0.67rem; color: #aaa; font-weight: 400; }
+  .quiz-a { font-size: 0.78rem; color: #1a5c5e; padding: 0.35rem 0.7rem 0.35rem 1rem; display: none; border-left: 3px solid var(--spa); background: var(--spa-light); border-radius: 0 4px 4px 0; margin-top: 2px; line-height: 1.55; }
+  .quiz-a.revealed { display: block; }
+
+  .waypoint { display: flex; align-items: center; gap: 0.9rem; padding: 0.7rem 1rem; background: linear-gradient(135deg,#fff9ee,#faf6f0); border: 1px dashed var(--gold); border-radius: 8px; margin-bottom: 1.3rem; margin-left: 64px; font-size: 0.78rem; line-height: 1.5; }
+  .waypoint-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .waypoint strong { display: block; font-size: 0.72rem; color: var(--stone-dark); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; }
+
+  .open-map { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.6rem; padding: 0.35rem 0.75rem; background: var(--spa); color: white; text-decoration: none; border-radius: 4px; font-size: 0.7rem; font-weight: 500; }
+  .open-map:hover { opacity: 0.85; }
+
+  footer { background: var(--ink); color: rgba(250,246,240,0.5); text-align: center; padding: 2rem 1.5rem; font-size: 0.72rem; line-height: 1.9; }
+  footer strong { color: var(--stone); }
+  footer a { color: var(--stone); }
+
+  @media (max-width: 560px) {
+    .stop-card { grid-template-columns: 42px 1fr; gap: 0 1rem; }
+    .stop-num { width: 42px; height: 42px; font-size: 1rem; }
+    .stop-card::before { left: 20px; }
+    .waypoint { margin-left: 54px; }
+    #map { height: 280px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-label">Team Away Day · Bath, United Kingdom</div>
+  <h1>2,000 Years in<br><em>Two Hours</em></h1>
+  <p class="header-sub">A self-guided walking tour of Britain's most extraordinary city</p>
+  <div class="header-meta">
+    <div class="meta-pill">⏱ ~2 hours</div>
+    <div class="meta-pill">🚶 ~2 miles</div>
+    <div class="meta-pill">👥 12 people</div>
+    <div class="meta-pill">🌍 7 nationalities</div>
+  </div>
+</header>
+
+<div class="flags-bar">
+  <span class="flags">🇮🇳 🇮🇹 🇨🇭 🇵🇹 🇩🇪 🇧🇪 🇬🇧</span>
+  Theme: <em>"From Romans to Regency — the city that reinvented itself every 500 years"</em>
+</div>
+
+<!-- MAP -->
+<div class="section">
+  <div class="section-label">The Route</div>
+  <div id="map"></div>
+  <div class="map-links">
+    <a class="map-btn primary" href="https://www.google.com/maps/dir/51.380753,-2.358242/51.381072,-2.359619/51.383001,-2.357954/51.386627,-2.367085/51.386035,-2.363564/51.380364,-2.361509/@51.3835,-2.363,15z/am=t/data=!4m2!4m1!3e2" target="_blank">📍 Open full route in Google Maps</a>
+    <a class="map-btn secondary" href="https://maps.apple.com/?daddr=51.380364,-2.361509&dirflg=w" target="_blank">🍎 Apple Maps</a>
+  </div>
+</div>
+
+<!-- STOPS -->
+<div class="section" style="padding-top:0">
+  <div class="section-label">The Stops</div>
+
+  <!-- STOP 1 -->
+  <div class="stop-card">
+    <div class="stop-num">1</div>
+    <div class="stop-body">
+      <div class="stop-header">
+        <div class="stop-name">Sally Lunn's Historic Eating House</div>
+        <div class="stop-era">c.1482 · Medieval</div>
+      </div>
+      <div class="stop-meta">
+        <span>⏱ 15 min</span><span>☕ Coffee &amp; buns here</span><span>📍 4 North Parade Passage, BA1 1NX</span>
+      </div>
+      <div class="stop-content">
+        <p class="stop-desc">Start in one of Bath's oldest buildings — a 15th-century house where a young French Huguenot refugee named Solange Luyon (anglicised to "Sally Lunn") arrived in 1680 and invented a giant brioche-style bun that became famous across Britain. The secret recipe has never left this building. There's a free museum in the basement showing the original kitchen and Roman foundations beneath your feet.</p>
+        <div class="stop-tabs">
+          <button class="tab-btn active" onclick="tab(this,'s1f')">Key Facts</button>
+          <button class="tab-btn" onclick="tab(this,'s1n')">Your Team 🌍</button>
+          <button class="tab-btn" onclick="tab(this,'s1q')">Quiz ❓</button>
+        </div>
+        <div id="s1f" class="tab-panel active"><ul>
+          <li>The building dates to 1482 — older than Columbus reaching the Americas</li>
+          <li>Sally was a Huguenot refugee who fled France after Louis XIV revoked Protestant rights in 1685</li>
+          <li>The bun recipe is still secret — held in the basement museum (free to pop down)</li>
+          <li>The building sits on Roman foundations visible in the museum below</li>
+          <li>Jane Austen ate here regularly during her Bath years (1801–1806)</li>
+        </ul></div>
+        <div id="s1n" class="tab-panel"><div class="nat-grid">
+          <div class="nat-row"><span class="nat-flag">🇵🇹</span><span><strong>Portuguese:</strong> Portugal expelled its Jewish population in 1497 under the Inquisition — Sally's story of fleeing religious persecution for a new life abroad echoes Portuguese history powerfully. Refugees rebuilding their lives is a pan-European theme.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇧🇪</span><span><strong>Belgian:</strong> Huguenots also fled to the Spanish Netherlands (modern Belgium), transforming Flemish weaving, brewing and commerce. The word "refugee" entered English from the French <em>réfugié</em> — coined specifically for Huguenots fleeing to Belgium and England.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇮🇹</span><span><strong>Italian:</strong> The Sally Lunn bun is essentially a brioche — a large, enriched bread with deep French-Italian roots. Your Italian colleagues will recognise it as a close relative of their own festival breads like <em>panettone</em> and <em>colomba</em>.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇩🇪</span><span><strong>German:</strong> Huguenots also fled to Brandenburg-Prussia and other German states. Frederick William I of Prussia actively welcomed them — and about 20,000 settled in Berlin alone, founding the Französischer Dom (French Cathedral) still standing today.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇮🇳</span><span><strong>Indian:</strong> Many of Bath's Georgian townhouses were built on fortunes made in India by "nabobs" — from the Urdu word <em>nawab</em> (Mughal provincial governor). The word entered English directly from India, and the wealth it describes built much of this city.</span></div>
+        </div></div>
+        <div id="s1q" class="tab-panel">
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q1: Sally Lunn fled France as a Huguenot refugee. Which French king revoked Protestant rights, and in which year? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Louis XIV revoked the Edict of Nantes in 1685 with the Edict of Fontainebleau. This stripped French Protestants of all legal protections overnight. Around 400,000 Huguenots fled — to England, Switzerland, Germany, South Africa and the Dutch Republic. It was one of history's great refugee crises.</div>
+          </div>
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q2: The word "nabob" comes from which language, and what does it originally mean? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">From Urdu/Hindi — <em>nawab</em>, a Mughal provincial governor. Britons who made vast fortunes in India and returned home to build grand houses were mockingly called "nabobs." Many of Bath's grandest Georgian streets were funded by this imperial wealth. The word entered standard English dictionaries from Urdu.</div>
+          </div>
+        </div>
+        <a class="open-map" href="https://maps.google.com/?q=51.380753,-2.358242" target="_blank">📍 Navigate here</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="waypoint">
+    <div class="waypoint-icon">🚶</div>
+    <div><strong>Walk: 2 min · 100m</strong>Head north through Abbey Churchyard — the Abbey is on your right, Roman Baths entrance is directly ahead.</div>
+  </div>
+
+  <!-- STOP 2 -->
+  <div class="stop-card">
+    <div class="stop-num">2</div>
+    <div class="stop-body">
+      <div class="stop-header">
+        <div class="stop-name">The Roman Baths</div>
+        <div class="stop-era">c.60 AD · Roman</div>
+      </div>
+      <div class="stop-meta">
+        <span>⏱ 20 min (exterior)</span><span>💷 £25pp to enter (optional)</span><span>📍 Abbey Churchyard, BA1 1LZ</span>
+      </div>
+      <div class="stop-content">
+        <p class="stop-desc">The Romans built a sacred temple and bathing complex here around 60 AD, naming the city <em>Aquae Sulis</em> — "Waters of Sulis." The natural hot spring produces 1.2 million litres at 46°C every single day and has never stopped flowing. Even from outside, the steaming water and ancient stonework are extraordinary. This is ground zero for Bath's entire 2,000-year identity.</p>
+        <div class="stop-tabs">
+          <button class="tab-btn active" onclick="tab(this,'s2f')">Key Facts</button>
+          <button class="tab-btn" onclick="tab(this,'s2n')">Your Team 🌍</button>
+          <button class="tab-btn" onclick="tab(this,'s2q')">Quiz ❓</button>
+        </div>
+        <div id="s2f" class="tab-panel active"><ul>
+          <li>Romans merged the local Celtic goddess Sulis with Minerva — creating the hybrid deity Sulis Minerva</li>
+          <li>Over 130 "curse tablets" have been found — thin lead sheets asking the goddess to punish thieves</li>
+          <li>The spring water fell as rain roughly 10,000 years ago and was heated underground before rising</li>
+          <li>The open-air Great Bath you see is Victorian — in Roman times it was enclosed under a barrel-vaulted roof</li>
+          <li>The audio guide is available in multiple languages including German, Italian and French</li>
+        </ul></div>
+        <div id="s2n" class="tab-panel"><div class="nat-grid">
+          <div class="nat-row"><span class="nat-flag">🇮🇹</span><span><strong>Italian:</strong> The legions who built this complex came largely from Italy and the Mediterranean. The bath design is architecturally identical to Roman baths in Pompeii, Ostia and Herculaneum — your Italian colleagues are looking at a piece of home, built 2,000km away.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇩🇪</span><span><strong>German:</strong> Many Roman soldiers here were Batavian auxiliaries from the Rhine delta (modern Netherlands/Germany). Romans and Germanic tribes fought bitterly — but also served side by side across the Empire. The legions were genuinely multinational.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇨🇭</span><span><strong>Swiss:</strong> Roman Helvetia (modern Switzerland) had its own thermal baths — <em>Aquae Helveticae</em> at Baden, Aargau. The Roman template is identical: a sacred spring, a temple, a public bath. Swiss colleagues will recognise the format from their own history.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇮🇳</span><span><strong>Indian:</strong> Roman coins have been found in Tamil Nadu — the Empire traded directly with India for pepper, cotton, ivory and spices. This city was a node in an ancient global network that stretched all the way to the Indian subcontinent.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇵🇹</span><span><strong>Portuguese:</strong> Roman Lusitania (modern Portugal) was a key western province. Conimbriga, near Coimbra, has Roman baths with mosaic floors almost identical to these — still one of the best-preserved Roman towns in Iberia.</span></div>
+        </div></div>
+        <div id="s2q" class="tab-panel">
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q1: The spring water is 10,000 years old. What existed — and didn't exist — when this rain first fell? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">10,000 years ago was the Mesolithic period. No writing, no agriculture, no cities, no wheels — and no Stonehenge (built around 3,000 BC, so 7,000 years after this water fell). This water predates all of recorded human history. It has been underground since before civilisation began.</div>
+          </div>
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q2: Roman visitors threw curse tablets into the spring. What was the most commonly cursed crime, and what did one tablet actually say? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Theft — especially of clothing left in changing rooms while bathing. One tablet reads (translated): "Solinus to the goddess Sulis Minerva. I give to your divinity my bathing tunic and cloak. Do not allow sleep or health to him who has done me wrong." Romans worried about their stuff being nicked at the baths — some things never change.</div>
+          </div>
+        </div>
+        <a class="open-map" href="https://maps.google.com/?q=51.381072,-2.359619" target="_blank">📍 Navigate here</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="waypoint">
+    <div class="waypoint-icon">🚶</div>
+    <div><strong>Walk: 3 min · 200m</strong>Head north past the Pump Room, cross the road onto Bridge Street towards the River Avon.</div>
+  </div>
+
+  <!-- STOP 3 -->
+  <div class="stop-card">
+    <div class="stop-num">3</div>
+    <div class="stop-body">
+      <div class="stop-header">
+        <div class="stop-name">Pulteney Bridge &amp; Weir</div>
+        <div class="stop-era">1774 · Georgian</div>
+      </div>
+      <div class="stop-meta">
+        <span>⏱ 10 min</span><span>📸 Best photo stop</span><span>📍 Bridge Street, BA2 4AT</span>
+      </div>
+      <div class="stop-content">
+        <p class="stop-desc">One of only four bridges in the world fully lined with shops on both sides. Designed by Robert Adam in the Palladian style and completed in 1774. The horseshoe-shaped weir just below creates one of England's most photographed views. <strong>Best photo: cross the bridge, turn right, go down the steps to the riverside and look back.</strong></p>
+        <div class="stop-tabs">
+          <button class="tab-btn active" onclick="tab(this,'s3f')">Key Facts</button>
+          <button class="tab-btn" onclick="tab(this,'s3n')">Your Team 🌍</button>
+          <button class="tab-btn" onclick="tab(this,'s3q')">Quiz ❓</button>
+        </div>
+        <div id="s3f" class="tab-panel active"><ul>
+          <li>Robert Adam's design was directly inspired by Andrea Palladio — the 16th-century Italian Renaissance architect from Vicenza</li>
+          <li>Named after Frances Pulteney, wife of the man who funded it</li>
+          <li>The 2012 film <em>Les Misérables</em> used this bridge as a stand-in for Paris</li>
+          <li>The weir was added later to manage river levels — and accidentally created the most photographed view in Bath</li>
+        </ul></div>
+        <div id="s3n" class="tab-panel"><div class="nat-grid">
+          <div class="nat-row"><span class="nat-flag">🇮🇹</span><span><strong>Italian:</strong> The three other shopping bridges in the world are the Ponte Vecchio (Florence) and Rialto (Venice) — both Italian. Pulteney's design explicitly references Palladio from Vicenza. Ask your Italian colleagues if they've walked those bridges — they're in very exclusive company here.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇩🇪</span><span><strong>German:</strong> The fourth shopping bridge is the Krämerbrücke in Erfurt, Germany — dating to 1325, lined with half-timbered houses. Your German colleagues are co-members of the world's most exclusive bridge club. Only four in the entire world.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇧🇪</span><span><strong>Belgian:</strong> Victor Hugo, who wrote <em>Les Misérables</em> — the film that used this bridge as Paris — was born in Besançon but spent much of his exile in Brussels and Guernsey. Belgian literary connection via the film shot right here.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇨🇭</span><span><strong>Swiss:</strong> The Palladian style visible here was deeply influential on Swiss civic architecture — Geneva's Hôtel de Ville and Bern's arcaded streets share the same classical restraint and proportional language that Adam used on this bridge.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇵🇹</span><span><strong>Portuguese:</strong> Portugal and England signed the Treaty of Windsor in 1386 — the oldest diplomatic alliance still in force today. The wealth flowing through this Georgian city came partly from Anglo-Portuguese trade: Port wine, cork, bacalhau. Standing on this bridge, you're standing on 638 years of friendship.</span></div>
+        </div></div>
+        <div id="s3q" class="tab-panel">
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q1: Name all four bridges in the world fully lined with shops. Which countries are they in? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Pulteney Bridge, Bath (England) · Ponte Vecchio, Florence (Italy) · Rialto Bridge, Venice (Italy) · Krämerbrücke, Erfurt (Germany). Your team covers 3 of the 4 countries. The Italian colleagues can claim two, the Germans one, and the English one.</div>
+          </div>
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q2: England and Portugal have the world's oldest active diplomatic alliance. What is it called, and what year was it signed? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">The Treaty of Windsor, signed in 1386 — 638 years ago. It has never been broken. It was invoked as recently as WWII when Portugal allowed Britain to use the Azores as a military base. Your Portuguese and British colleagues are looking at each other across the oldest friendship in international diplomacy.</div>
+          </div>
+        </div>
+        <a class="open-map" href="https://maps.google.com/?q=51.383001,-2.357954" target="_blank">📍 Navigate here</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="waypoint">
+    <div class="waypoint-icon">🚶</div>
+    <div><strong>Walk: 18 min · ~1 mile</strong>The longest stretch — head west along Gay Street then Brock Street uphill. Great time for conversation. Arrive at the Royal Crescent lawns.</div>
+  </div>
+
+  <!-- STOP 4 -->
+  <div class="stop-card">
+    <div class="stop-num">4</div>
+    <div class="stop-body">
+      <div class="stop-header">
+        <div class="stop-name">The Royal Crescent</div>
+        <div class="stop-era">1767–1774 · Georgian</div>
+      </div>
+      <div class="stop-meta">
+        <span>⏱ 10 min</span><span>🎬 Bridgerton filming location</span><span>📍 Royal Crescent, BA1 2LR</span>
+      </div>
+      <div class="stop-content">
+        <p class="stop-desc">30 houses. 114 Ionic columns. 500 feet of golden Bath stone. The world's first crescent of terraced houses — a revolutionary idea: take the grandeur of a palace and divide it between 30 wealthy families. Stand at the ha-ha (the low wall at the front) for the full sweep. Look for the blue plaques — painters, prime ministers, explorers and one very eccentric Hollywood actor all lived here.</p>
+        <div class="stop-tabs">
+          <button class="tab-btn active" onclick="tab(this,'s4f')">Key Facts</button>
+          <button class="tab-btn" onclick="tab(this,'s4n')">Your Team 🌍</button>
+          <button class="tab-btn" onclick="tab(this,'s4q')">Quiz ❓</button>
+        </div>
+        <div id="s4f" class="tab-panel active"><ul>
+          <li>Designed by John Wood the Younger, completed 1774 — during the American Revolution</li>
+          <li>Nicolas Cage owned No.15 — bought it in 2007, sold it at a loss during financial difficulties</li>
+          <li>The central building is now a 5-star hotel; No.1 is a museum of Georgian life</li>
+          <li>Filming location: Bridgerton, Persuasion (2022), The Duchess (2008), and many others</li>
+          <li>Thomas Gainsborough — one of Britain's greatest portrait painters — lived at No.17</li>
+        </ul></div>
+        <div id="s4n" class="tab-panel"><div class="nat-grid">
+          <div class="nat-row"><span class="nat-flag">🇮🇹</span><span><strong>Italian:</strong> The 114 Ionic columns and Palladian proportions came directly from Italian Renaissance architecture — specifically Andrea Palladio of Vicenza. Bath's Georgian architects studied Palladio obsessively. This crescent is as Italian in inspiration as it is English in execution.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇩🇪</span><span><strong>German:</strong> The Georgian king when this was built — George III — was from the House of Hanover, Germany. He spoke German as his first language. The Georgian era is literally named after German kings. Your German colleagues helped fund this crescent, dynastically speaking.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇵🇹</span><span><strong>Portuguese:</strong> Port wine — a Portuguese invention — was the fashionable drink of the wealthy residents of this very crescent. The Methuen Treaty (1703) made Portuguese Port the drink of Georgian high society. Every dinner party held in these houses was toasted in Portuguese wine.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇮🇳</span><span><strong>Indian:</strong> Several residents of streets around here were East India Company officers who made fortunes in Bengal, Madras and Bombay. The opulence visible in this golden stone was substantially funded by imperial trade with India — a direct, if uncomfortable, thread.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇨🇭</span><span><strong>Swiss:</strong> Jean-Jacques Rousseau — the Swiss-Genevan philosopher — visited Bath in 1766, just as this crescent was being planned. His ideas about natural virtue vs urban corruption were hugely influential on Georgian society, including the very people commissioning these houses.</span></div>
+        </div></div>
+        <div id="s4q" class="tab-panel">
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q1: The Georgian kings were German. What was the royal family's German surname, and when and why did they change it? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Saxe-Coburg and Gotha. King George V changed it to Windsor in 1917, during WWI, because anti-German sentiment in Britain made a German royal name politically toxic. He also asked relatives to anglicise their names — the Battenbergs became Mountbattens. The current royal family's "Windsor" name is just 107 years old.</div>
+          </div>
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q2: Which Hollywood actor owned a house here — and what other eccentric European property did he own at the same time? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Nicolas Cage bought No.15 Royal Crescent for ~£5 million in 2007. At the same time, he also owned Neidstein Castle in Germany — a genuine medieval castle. He sold both at significant losses during his well-documented financial crisis. A man who owned a Georgian crescent house AND a German castle simultaneously.</div>
+          </div>
+        </div>
+        <a class="open-map" href="https://maps.google.com/?q=51.386627,-2.367085" target="_blank">📍 Navigate here</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="waypoint">
+    <div class="waypoint-icon">🚶</div>
+    <div><strong>Walk: 5 min · 300m</strong>Head east along Brock Street — flat and quick — to the next of Bath's two great Georgian set-pieces.</div>
+  </div>
+
+  <!-- STOP 5 -->
+  <div class="stop-card">
+    <div class="stop-num">5</div>
+    <div class="stop-body">
+      <div class="stop-header">
+        <div class="stop-name">The Circus</div>
+        <div class="stop-era">1754–1768 · Georgian</div>
+      </div>
+      <div class="stop-meta">
+        <span>⏱ 10 min</span><span>🔍 Spot the hidden symbols</span><span>📍 The Circus, BA1</span>
+      </div>
+      <div class="stop-content">
+        <p class="stop-desc">A perfect circle of 33 Georgian townhouses with the same diameter as Stonehenge — deliberate, according to architect John Wood's own notes. Walk slowly around the exterior and look closely at the carved stone frieze: acorns, serpents, masonic compasses, suns, moons — over 525 different symbols encoded into the stonework. This is Georgian Bath's great mystery, hidden in plain sight for 270 years.</p>
+        <div class="stop-tabs">
+          <button class="tab-btn active" onclick="tab(this,'s5f')">Key Facts</button>
+          <button class="tab-btn" onclick="tab(this,'s5n')">Your Team 🌍</button>
+          <button class="tab-btn" onclick="tab(this,'s5q')">Quiz ❓</button>
+        </div>
+        <div id="s5f" class="tab-panel active"><ul>
+          <li>Three tiers of columns — Doric, Ionic, Corinthian — the same as the Roman Colosseum, but facing inward</li>
+          <li>The diameter matches Stonehenge (97.5m) — Wood believed Bath was an ancient Druid site</li>
+          <li>Famous residents: Thomas Gainsborough (painter), David Livingstone (explorer), William Pitt the Elder (PM)</li>
+          <li>Masonic symbols — compasses, set squares, sunbursts — are carved throughout; Wood was a Freemason</li>
+          <li>Over 525 distinct symbols appear in total across the frieze</li>
+        </ul></div>
+        <div id="s5n" class="tab-panel"><div class="nat-grid">
+          <div class="nat-row"><span class="nat-flag">🇮🇹</span><span><strong>Italian:</strong> The three tiers of columns directly reference the Roman Colosseum — one of the most deliberate architectural quotations in British history. Key difference: the Colosseum faces outward to impress visitors; the Circus faces inward, making a private theatre for residents. Rome inverted.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇨🇭</span><span><strong>Swiss:</strong> Freemasonry — encoded in these carvings — had powerful lodges in Geneva and Zürich. Voltaire and Rousseau (both connected to Geneva) operated in the same Enlightenment intellectual circles that shaped the symbolism on this building. These stones are 18th-century European philosophy made visible.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇩🇪</span><span><strong>German:</strong> The German Romantic movement — fascination with ancient mystery, nature and pre-Christian symbolism — closely mirrors Wood's Druidic obsession here. The same intellectual current produced German fairy tales, Gothic cathedrals and Wagnerian mythology. Bath's Circus is Britain's contribution to that European conversation.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇮🇳</span><span><strong>Indian:</strong> The serpent symbols carved here also appear in Hindu and Buddhist iconography — the sacred Nāga. Wood's fascination with "ancient wisdom" drew on ideas about Eastern knowledge that were circulating in 18th-century Europe. The serpent is a genuinely global symbol of wisdom and eternity.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇧🇪</span><span><strong>Belgian:</strong> Belgian Freemasonry has been central to Belgian public and intellectual life since the 1830s — many founding fathers of independent Belgium were Freemasons. Your Belgian colleagues are looking at a building that speaks a symbolic language their compatriots would immediately recognise.</span></div>
+        </div></div>
+        <div id="s5q" class="tab-panel">
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q1: The Circus diameter matches Stonehenge. How did a Georgian architect connect a circle of townhouses to a prehistoric stone monument — and why? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">John Wood the Elder believed Bath was the site of an ancient Druid temple predating the Romans. He was convinced the hot spring was sacred to Druids, and made the Circus exactly 97.5m in diameter — matching Stonehenge — as a tribute to that belief. Whether correct is debated, but his conviction shaped one of Britain's greatest streets. The building is literally a Druidic theory in stone.</div>
+          </div>
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q2: Team challenge — can anyone spot 5 different symbols in the carved frieze right now? What do they represent? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Acorns (sacred oak, Druidic — acorns appear hundreds of times); Serpents (wisdom, medicine, eternity — universal symbol); Masonic compass &amp; set square (Freemasonry — Wood was a Mason); Sun and moon (astronomical cycles, ancient religion); Wheat sheaves (agriculture, fertility, Demeter); Tritons/sea gods (naval power, empire); Beehives (industry, community). Full meaning still debated by scholars 270 years later.</div>
+          </div>
+        </div>
+        <a class="open-map" href="https://maps.google.com/?q=51.386035,-2.363564" target="_blank">📍 Navigate here</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="waypoint">
+    <div class="waypoint-icon">🚶</div>
+    <div><strong>Walk: 12 min · 0.4 mile</strong>Head south down Gay Street, through Queen Square, then follow signs to Thermae Bath Spa — well signposted from the city centre.</div>
+  </div>
+
+  <!-- STOP 6 -->
+  <div class="stop-card">
+    <div class="stop-num">6</div>
+    <div class="stop-body">
+      <div class="stop-header">
+        <div class="stop-name">Thermae Bath Spa 🎉</div>
+        <div class="stop-era">2006 · Ancient Spring</div>
+      </div>
+      <div class="stop-meta">
+        <span>⏱ Book 2hr session in advance</span><span>💷 ~£42pp</span><span>📍 Hot Bath Street, BA1 1SJ</span>
+      </div>
+      <div class="stop-content">
+        <p class="stop-desc">End where Bath began — in the water. Britain's only natural thermal spa uses the same ancient spring that fed the Roman Baths 2,000 years ago. The open-air rooftop pool (34–40°C, open year-round) has panoramic views over Bath's golden skyline. Book well in advance — group bookings are available. The building, designed by Nicholas Grimshaw (Eden Project), is a masterpiece of glass and honey stone: ancient and modern in perfect tension.</p>
+        <div class="stop-tabs">
+          <button class="tab-btn active" onclick="tab(this,'s6f')">Key Facts</button>
+          <button class="tab-btn" onclick="tab(this,'s6n')">Your Team 🌍</button>
+          <button class="tab-btn" onclick="tab(this,'s6q')">Quiz ❓</button>
+        </div>
+        <div id="s6f" class="tab-panel active"><ul>
+          <li>Britain's only natural thermal spring you can actually bathe in — the Roman Baths water is not swimmable</li>
+          <li>The water you're bathing in fell as rain approximately 10,000 years ago</li>
+          <li>Rooftop pool open year-round — bathing in snow with city views is an unforgettable experience</li>
+          <li>Designed by Nicholas Grimshaw, who also designed the Eden Project in Cornwall</li>
+          <li>The word "spa" itself comes from Spa, Belgium — but Bath's version predates it by 1,500 years</li>
+        </ul></div>
+        <div id="s6n" class="tab-panel"><div class="nat-grid">
+          <div class="nat-row"><span class="nat-flag">🇧🇪</span><span><strong>Belgian:</strong> The word "spa" comes from Spa — a town in the Ardennes, Wallonia, Belgium, famous for its mineral springs since the 14th century. Your Belgian colleague(s) literally gave the world the word "spa." Every spa on earth — from Tokyo to Los Angeles — is named after a Belgian town. Time to take a bow.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇩🇪</span><span><strong>German:</strong> Spa culture is embedded in German identity — Baden-Baden, Wiesbaden, Bad Homburg, Bad Nauheim. The German prefix <em>Bad</em> (bath) in town names is the same concept as <em>Aquae Sulis</em>. Germans arguably have the richest living spa culture in Europe — your German colleagues will feel entirely at home.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇨🇭</span><span><strong>Swiss:</strong> <em>Aquae Helveticae</em> (Waters of the Swiss) at Baden, Aargau, has Roman thermal baths almost identical to these. Same ancient spring, same Roman origins, same modern reinvention. The Romans built the same template across the entire Empire — from Switzerland to Somerset.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇮🇳</span><span><strong>Indian:</strong> Bathing as ritual, social and spiritual practice is central to Indian culture — from the Ganges to temple tanks (<em>pushkarani</em>). The Romans' sacred relationship with this spring — bathing as an act of worship — mirrors the Indian tradition of sacred waters far more than modern Western bathing culture does.</span></div>
+          <div class="nat-row"><span class="nat-flag">🇵🇹</span><span><strong>Portuguese:</strong> Portugal has a long tradition of <em>termas</em> (thermal spas) — Vidago, Caldas da Rainha, Chaves. The Portuguese word <em>caldas</em> (hot springs) shares its Latin root with <em>caldarium</em> (the Roman hot bath room). A 2,000-year linguistic thread connects the Roman Baths you just visited to every Portuguese spa town.</span></div>
+        </div></div>
+        <div id="s6q" class="tab-panel">
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q1: The word "spa" comes from which country represented in your team today — and what is the town called? <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Belgium! The town is Spa, in the Ardennes region of Wallonia. Famous for its mineral springs since the 14th century, it gave its name to every spa facility on earth. Your Belgian colleague(s) can take a well-deserved bow in the rooftop pool.</div>
+          </div>
+          <div class="quiz-item">
+            <div class="quiz-q" onclick="reveal(this)">Q2: Grand finale — from this rooftop, name all six stops in order, the era of each, and one fact that links to your own nationality. <span class="quiz-hint">(tap to reveal)</span></div>
+            <div class="quiz-a">Sally Lunn's (1482, Medieval — Huguenot refugee, Indian nabob wealth nearby) → Roman Baths (60 AD — Italian legions built it, traded with India, Swiss &amp; Portuguese had identical ones) → Pulteney Bridge (1774 — Italian Palladian style, German shopping bridge cousin in Erfurt, Portuguese-English alliance toasted here) → Royal Crescent (1767–74 — Italian columns, German king funded it, Portuguese Port drunk in every house) → The Circus (1754 — Roman/Italian Colosseum reference, Swiss/Belgian Masonic symbols, Indian serpent motifs) → Thermae (2006 — Belgian-named, German spa tradition, Swiss Roman baths echo, Indian sacred water parallel). 🥂 Seven nations, one city, 2,000 years.</div>
+          </div>
+        </div>
+        <a class="open-map" href="https://maps.google.com/?q=51.380364,-2.361509" target="_blank">📍 Navigate here</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <strong>Bath Team Away Day Walking Tour</strong><br>
+  Sally Lunn's → Roman Baths → Pulteney Bridge → Royal Crescent → The Circus → Thermae Bath Spa<br>
+  ~2 miles · ~2 hours · Flat enough for all fitness levels<br><br>
+  🇮🇳 🇮🇹 🇨🇭 🇵🇹 🇩🇪 🇧🇪 🇬🇧 &nbsp;·&nbsp; <em>Seven nations, one city, 2,000 years</em><br><br>
+  <strong>Book ahead:</strong> Thermae Bath Spa — <a href="https://www.thermaebathspa.com" target="_blank">thermaebathspa.com</a> · Group bookings available<br>
+  <strong>Taxi:</strong> Bath Taxis 01225 444 444
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var stops = [
+    { lat: 51.380753, lng: -2.358242, n: "1", name: "Sally Lunn's", sub: "Start · 10:00 AM" },
+    { lat: 51.381072, lng: -2.359619, n: "2", name: "Roman Baths", sub: "10:20 AM" },
+    { lat: 51.383001, lng: -2.357954, n: "3", name: "Pulteney Bridge", sub: "10:45 AM" },
+    { lat: 51.386627, lng: -2.367085, n: "4", name: "Royal Crescent", sub: "11:10 AM" },
+    { lat: 51.386035, lng: -2.363564, n: "5", name: "The Circus", sub: "11:25 AM" },
+    { lat: 51.380364, lng: -2.361509, n: "6", name: "Thermae Bath Spa", sub: "Finish · 12:00 PM" }
+  ];
+
+  var map = L.map('map').setView([51.3835, -2.363], 15);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(map);
+
+  var coords = stops.map(function(s){ return [s.lat, s.lng]; });
+  L.polyline(coords, { color: '#c49a2a', weight: 3.5, dashArray: '8,5', opacity: 0.9 }).addTo(map);
+
+  stops.forEach(function(s) {
+    var icon = L.divIcon({
+      className: '',
+      html: '<div style="width:32px;height:32px;border-radius:50%;background:#1a1208;color:#faf6f0;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:14px;font-weight:bold;border:3px solid #c8b89a;box-shadow:0 2px 8px rgba(0,0,0,0.4);">' + s.n + '</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -18]
+    });
+    L.marker([s.lat, s.lng], { icon: icon })
+      .addTo(map)
+      .bindPopup('<strong>' + s.name + '</strong><br><small>' + s.sub + '</small>');
+  });
+});
+
+function tab(btn, panelId) {
+  var body = btn.closest('.stop-body');
+  body.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  body.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+function reveal(el) {
+  var ans = el.nextElementSibling;
+  if (ans) ans.classList.toggle('revealed');
+}
+</script>
+</body>
+</html>

@@ -476,6 +476,22 @@ document.addEventListener('DOMContentLoaded', function() {
   var coords = stops.map(function(s){ return [s.lat, s.lng]; });
   L.polyline(coords, { color: '#c49a2a', weight: 3.5, dashArray: '8,5', opacity: 0.9 }).addTo(map);
 
+  var userMarker = null, userAccCircle = null;
+  map.on('locationfound', function(e) {
+    if (userMarker) {
+      userMarker.setLatLng(e.latlng);
+      userAccCircle.setLatLng(e.latlng).setRadius(e.accuracy / 2);
+    } else {
+      userMarker = L.circleMarker(e.latlng, {
+        radius: 8, fillColor: '#4a7c7e', color: '#fff', weight: 2, fillOpacity: 0.9
+      }).addTo(map).bindPopup('You are here');
+      userAccCircle = L.circle(e.latlng, {
+        radius: e.accuracy / 2, color: '#4a7c7e', fillColor: '#4a7c7e', fillOpacity: 0.1, weight: 1
+      }).addTo(map);
+    }
+  });
+  map.locate({ watch: true, enableHighAccuracy: true });
+
   stops.forEach(function(s) {
     var icon = L.divIcon({
       className: '',
